@@ -65,7 +65,7 @@ button[disabled]{opacity:.45;cursor:not-allowed}
     <p class="note">请用电脑浏览器观看，建议全屏或放大窗口，不要用手机。</p>
     <p class="note">三段视频共用一个进度条，可以拖动、暂停和逐帧前后移动。点“逐帧对比”可以把当前帧放大并排查看，点击任意画面可放大同一区域。</p>
     <p class="note">共 <span id="nItems">26</span> 组，约 15 分钟。</p>
-    <p class="note">每组答案会自动提交，不需要导出或发送任何文件。中途关闭也没关系，用同一个浏览器重新打开本页面，会从断点继续。</p>
+    <p class="note">每组至少完整看完一遍视频后才能提交。每组答案会自动提交，不需要导出或发送任何文件。中途关闭也没关系，用同一个浏览器重新打开本页面，会从断点继续。</p>
     <div class="row"><button class="primary" id="start">开始</button></div>
   </section>
 
@@ -116,7 +116,7 @@ const PER_GROUP = 2;
 const QS = [['q_ref','哪个更接近参考视频？','重点看人脸、文字、纹理细节和运动轨迹是否和参考一致']];
 const OPTS = [['A','A 更接近'],['tie','差不多'],['B','B 更接近']];
 const $ = id => document.getElementById(id);
-let uid=null, state=null, items=[], cur=0, t0=0;
+let uid=null, state=null, items=[], cur=0, t0=0, readyAt=0, minWatch=0;
 let playing=false, dragging=false, zoom=1, zc=[.5,.5], fps=24;
 const V = () => [$('vR'), $('vA'), $('vB')];
 
@@ -151,6 +151,7 @@ function tick(){
       [a,b].forEach(v => { if(Math.abs(v.currentTime - r.currentTime) > 0.04){ try{ v.currentTime = r.currentTime }catch(e){} } });
     }
     if(!dragging) $('seek').value = Math.round(1000 * r.currentTime / d);
+    if(readyAt && !$('trial').hidden && Date.now() - readyAt < minWatch + 1500) updateNext();
     $('time').textContent = r.currentTime.toFixed(2) + ' / ' + d.toFixed(2) + ' s';
   }
   requestAnimationFrame(tick);
@@ -184,21 +185,32 @@ function renderQuestions(){
     <div class="opts" role="radiogroup" aria-label="${t}">${OPTS.map(([v,l]) =>
       `<label class="opt"><input type="radio" name="${k}" id="${k}_${v==='tie'?'S':v}" value="${v}"><span>${l}</span></label>`).join('')}</div></div>`).join('');
   $('questions').querySelectorAll('input').forEach(i => i.addEventListener('change', () => {
-    $('next').disabled = !QS.every(([k]) => document.querySelector(`input[name="${k}"]:checked`));
+    updateNext();
   }));
+}
+/* answers unlock only after the clips have been on screen for one full playback */
+function updateNext(){
+  const answered = QS.every(([k]) => document.querySelector(`input[name="${k}"]:checked`));
+  const left = readyAt ? Math.ceil((minWatch - (Date.now() - readyAt)) / 1000) : NaN;
+  const waited = readyAt && left <= 0;
+  $('next').disabled = !(answered && waited);
+  const note = waited ? '' : (readyAt ? `请先完整看完一遍视频再提交（还需 ${left} 秒）` : '');
+  if(note || $('saveNote').dataset.wait){ $('saveNote').textContent = note; $('saveNote').dataset.wait = note ? '1' : ''; }
 }
 function showItem(){
   if(cur >= items.length){ setPlaying(false); $('trial').hidden = true; $('done').hidden = false; $('meta').textContent = '已完成'; return; }
   const it = items[cur];
   setPlaying(false); $('framePanel').hidden = true; $('frameBtn').classList.remove('on');
   $('vR').src = 'videos/' + it.ref + '.mp4'; $('vA').src = 'videos/' + it.L + '.mp4'; $('vB').src = 'videos/' + it.R + '.mp4';
+  readyAt = 0; minWatch = 0;
   renderQuestions(); $('next').disabled = true; $('saveNote').textContent = '';
   $('count').textContent = `第 ${cur+1} / ${items.length} 组`;
   $('bar').style.width = (100*cur/items.length) + '%';
   $('loadNote').textContent = '视频加载中…';
   let ready = 0;
   V().forEach(v => v.addEventListener('canplay', () => {
-    if(++ready === 3){ $('loadNote').textContent = ''; const d = dur(); fps = d > 7 ? 24 : 16; seekAll(0); setPlaying(true); }
+    if(++ready === 3){ $('loadNote').textContent = ''; const d = dur(); fps = d > 7 ? 24 : 16; seekAll(0); setPlaying(true);
+                       readyAt = Date.now(); minWatch = 1000 * d; updateNext(); }
   }, {once:true}));
   t0 = Date.now();
 }
@@ -214,6 +226,7 @@ function submit(rec){
 }
 function persist(){ try{ localStorage.setItem('t2t_study_v4_' + uid, JSON.stringify(state)) }catch(e){} }
 function save(){
+  if($('next').disabled) return;
   const it = items[cur], ans = {};
   QS.forEach(([k]) => ans[k] = document.querySelector(`input[name="${k}"]:checked`).value);
   state.answers[it.id] = {pair: it.id, left: it.L, right: it.R, ref: it.ref, check: !!it.check, v: 2, ...ans, ms: Date.now() - t0, at: Date.now()};
