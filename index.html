@@ -217,7 +217,9 @@ function showItem(){
 function submit(rec){
   if(!ENDPOINT) return;
   let queue = []; try{ queue = JSON.parse(localStorage.getItem('t2t_queue_v4') || '[]') }catch(e){}
-  queue.push({rater: uid, ...rec});
+  // leading apostrophe keeps ids such as 378876e6 as text in Google Sheets (otherwise parsed as 3.79E+11)
+  const txt = v => "'" + v;
+  queue.push({rater: uid, ...rec, pair: txt(rec.pair), left: txt(rec.left), right: txt(rec.right), ref: txt(rec.ref)});
   const send = queue.slice();
   try{ localStorage.setItem('t2t_queue_v4', JSON.stringify(queue)) }catch(e){}
   fetch(ENDPOINT, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(send)})
