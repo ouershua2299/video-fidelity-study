@@ -65,13 +65,13 @@ button[disabled]{opacity:.45;cursor:not-allowed}
     <p class="note">请用电脑浏览器观看，建议全屏或放大窗口，不要用手机。</p>
     <p class="note">三段视频共用一个进度条，可以拖动、暂停和逐帧前后移动。点“逐帧对比”可以把当前帧放大并排查看，点击任意画面可放大同一区域。</p>
     <p class="note">共 <span id="nItems">26</span> 组，约 15 分钟。</p>
-    <p class="note">每组答案会自动提交；如果页面提示无法提交，答完后点“导出结果”，把文件发给发起人。中途关闭也没关系，用同一个浏览器重新打开本页面，会从断点继续。</p>
+    <p class="note">每组答案会自动提交，不需要导出或发送任何文件。中途关闭也没关系，用同一个浏览器重新打开本页面，会从断点继续。</p>
     <div class="row"><button class="primary" id="start">开始</button></div>
   </section>
 
   <section class="panel" id="trial" hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div class="row" style="justify-content:space-between"><span class="meta" id="count"></span><span class="row"><span class="note" id="loadNote"></span><button id="export">导出结果</button></span></div>
+      <div class="row" style="justify-content:space-between"><span class="meta" id="count"></span><span class="note" id="loadNote"></span></div>
       <div class="progress"><i id="bar"></i></div>
       <div class="ref"><figcaption>参考视频</figcaption><video id="vR" muted playsinline preload="auto"></video></div>
       <div class="pair">
@@ -104,13 +104,12 @@ button[disabled]{opacity:.45;cursor:not-allowed}
 
   <section class="panel done" id="done" hidden>
     <h2 style="margin:0 0 .4em">感谢参与</h2>
-    <p class="note">答案已经提交。如需备份，可以点下面的按钮导出结果文件。</p>
-    <div class="row" style="justify-content:center"><button class="primary" id="export2">导出结果</button></div>
+    <p class="note">全部答案已经自动提交，可以直接关闭本页面。谢谢！</p>
   </section>
 </div>
 
 <script>
-// 收集地址：部署 Google Apps Script 后，把网页应用的 URL 填在这里；留空则只能导出结果文件。
+// 收集地址：部署 Google Apps Script 后，把网页应用的 URL 填在这里。
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwb-hpt-97xVpcJTtmraCNGk6jDkGDuMsaTyejjPFw5uYvyMZMn2v41ZgyBcWMRpJTAvg/exec';
 const PAIRS = [{"pair":"240f16","g":2,"ref":"0324aac3","x":"1cc62be5","y":"783646bf"},{"pair":"8903a9","g":2,"ref":"af11bab1","x":"23813fa9","y":"0b13a023"},{"pair":"fb51a5","g":2,"ref":"3b576638","x":"b6258a84","y":"c1f194db"},{"pair":"3b2de7","g":2,"ref":"bd9b945e","x":"087a442c","y":"a983c108"},{"pair":"347639","g":2,"ref":"892120dd","x":"729fce14","y":"bb7cd907"},{"pair":"c52ef7","g":2,"ref":"ff106140","x":"97d42fdf","y":"17d625f8"},{"pair":"34b7ad","g":2,"ref":"f096dbb7","x":"e33e474a","y":"672774f3"},{"pair":"3f1ec6","g":2,"ref":"548f2855","x":"5d69bd89","y":"64562841"},{"pair":"a9a843","g":3,"ref":"35d85602","x":"b956629f","y":"378876e6"},{"pair":"2e0d49","g":3,"ref":"8c213116","x":"0f5fa1a4","y":"f428817a"},{"pair":"cbcab0","g":3,"ref":"5b02514f","x":"227e5be6","y":"34300685"},{"pair":"87fee8","g":3,"ref":"fd2da724","x":"605c8ab7","y":"07c64f5c"},{"pair":"352e7d","g":3,"ref":"de4c8e22","x":"a6b1cfa8","y":"704d5edc"},{"pair":"54a519","g":3,"ref":"cbed9a21","x":"6eb1261f","y":"bad55e9c"},{"pair":"436df2","g":3,"ref":"a4111082","x":"d19e57e6","y":"381c6467"},{"pair":"7b58d1","g":3,"ref":"5604c11c","x":"55977cfd","y":"4b1a82e6"},{"pair":"36916c","g":0,"ref":"a5924ce9","x":"a6981214","y":"d60f72b3"},{"pair":"c5c154","g":0,"ref":"f9f75e10","x":"bfcfb041","y":"fe5669a6"},{"pair":"ef9b39","g":0,"ref":"4e6a8985","x":"2d21dfa4","y":"e57c6f3c"},{"pair":"2c6fac","g":0,"ref":"8bbac7a5","x":"d69b3b31","y":"acad0427"},{"pair":"5fee65","g":0,"ref":"315ac107","x":"ebc7c729","y":"075ca9ba"},{"pair":"48e9a7","g":0,"ref":"b2039a25","x":"187c343b","y":"f4ff7c4d"},{"pair":"e28734","g":0,"ref":"e8fbdf24","x":"a63a7d9b","y":"4e3a56a7"},{"pair":"557c8c","g":0,"ref":"32679894","x":"1d2ec632","y":"746dc69e"},{"pair":"b6c8a0","g":1,"ref":"71d653fd","x":"6726a534","y":"c9f64b96"},{"pair":"a31aae","g":1,"ref":"1e37b157","x":"194f4756","y":"44877af1"},{"pair":"298fba","g":1,"ref":"1e8bb4b3","x":"f5f550ad","y":"31b10334"},{"pair":"0ed64e","g":1,"ref":"b6a54c4d","x":"fd7a0fc2","y":"daa59317"},{"pair":"dc418e","g":1,"ref":"7f869a51","x":"c9d705c9","y":"9c93e20f"},{"pair":"973721","g":1,"ref":"5f55a287","x":"fb40fcd3","y":"9cdb4e05"},{"pair":"cc1bd8","g":1,"ref":"09bf5ad4","x":"dac3ded2","y":"1cad5603"},{"pair":"d445a2","g":1,"ref":"b9a201fe","x":"9b34000a","y":"b1633aec"},{"pair":"c8197f","g":9,"ref":"c47d94a8","x":"064b08d9","y":"41378fbb"},{"pair":"18c64d","g":9,"ref":"fc2b18ff","x":"7849cbcb","y":"59440be4"},{"pair":"fe3e49","g":9,"ref":"600c77a0","x":"952b0414","y":"48533a7f"},{"pair":"9d24f8","g":9,"ref":"0b8b206e","x":"1ff65986","y":"21d436d1"},{"pair":"c9f6cd","g":9,"ref":"0ccc0566","x":"9d2be271","y":"ec61bf63"},{"pair":"b0769e","g":9,"ref":"317d1d9a","x":"d21b2577","y":"f2589748"},{"pair":"836e35","g":10,"ref":"2f0f2600","x":"747123af","y":"8df33eaf"},{"pair":"3a18b5","g":10,"ref":"863df694","x":"dc16be9b","y":"b5a9cbf6"},{"pair":"4ef874","g":10,"ref":"86277bb3","x":"b793b4ea","y":"31d36064"},{"pair":"5f1f7c","g":10,"ref":"b78ddca9","x":"d1bb9401","y":"77868f9d"},{"pair":"31093b","g":10,"ref":"1f9c5562","x":"85cb38a6","y":"c87a6756"},{"pair":"c5c990","g":10,"ref":"f1585173","x":"4aeec4f8","y":"b0ac3979"},{"pair":"bb8dda","g":8,"ref":"2a8a41b9","x":"da66caaa","y":"0ac10242"},{"pair":"e1e9d7","g":8,"ref":"6cc48356","x":"3529619f","y":"24005835"},{"pair":"4e9526","g":8,"ref":"4ea45701","x":"6cee9bd7","y":"346f831e"},{"pair":"44faa1","g":8,"ref":"8aa34d2a","x":"3e24ba7d","y":"9658f20b"},{"pair":"78e6bc","g":8,"ref":"bc303115","x":"f072a1fb","y":"d3c4d695"},{"pair":"895303","g":8,"ref":"9d5dc3c7","x":"d3ef4b0e","y":"e53863be"},{"pair":"35e793","g":11,"ref":"33c09c65","x":"d059f021","y":"6f53b97c"},{"pair":"b50f02","g":11,"ref":"66ba78a2","x":"088ba72f","y":"d150ab6e"},{"pair":"4c0a07","g":11,"ref":"32cd3bc5","x":"3d7093d7","y":"36e1e806"},{"pair":"374c10","g":11,"ref":"b2a787b8","x":"f59a8dfa","y":"5e45fc87"},{"pair":"b18fd6","g":11,"ref":"10e2e045","x":"3fc09d4a","y":"f8178bbd"},{"pair":"a6f0bd","g":11,"ref":"7ac2350b","x":"e3642f98","y":"7ff620d5"},{"pair":"116a48","g":5,"ref":"4700b663","x":"a882eb90","y":"2e7b5cfc"},{"pair":"d4f78c","g":5,"ref":"7b83818c","x":"4c11b68b","y":"276d26d9"},{"pair":"45c160","g":5,"ref":"016d8aa3","x":"fb318b45","y":"000d0413"},{"pair":"3efced","g":5,"ref":"c1f2f499","x":"4cea9904","y":"48c4a1a9"},{"pair":"f828fa","g":5,"ref":"94534d33","x":"6748683d","y":"4eb61401"},{"pair":"a1f6f0","g":5,"ref":"3bb2c67e","x":"3d31afc7","y":"9aee1162"},{"pair":"ab9beb","g":6,"ref":"8a7a3644","x":"51d9f213","y":"c4b0ba55"},{"pair":"e8005b","g":6,"ref":"92f96d5b","x":"b53453e5","y":"30058ff8"},{"pair":"780eba","g":6,"ref":"8add7cca","x":"7e10b219","y":"f0ec1b3c"},{"pair":"ca9c5f","g":6,"ref":"84f2719f","x":"f089882b","y":"dbbce5e8"},{"pair":"e2f188","g":6,"ref":"633c924c","x":"65e3684c","y":"ad5d37e2"},{"pair":"921130","g":6,"ref":"38bc6b07","x":"c46f91f4","y":"6923c548"},{"pair":"d91b95","g":4,"ref":"3e07ecc6","x":"f5867359","y":"b4b13f7f"},{"pair":"45df76","g":4,"ref":"f462c535","x":"af1f4899","y":"694814db"},{"pair":"53e944","g":4,"ref":"fbb33bea","x":"cbe86c9d","y":"1ba231a3"},{"pair":"6d7759","g":4,"ref":"3f8fb01f","x":"7ddf80ea","y":"babd5c1b"},{"pair":"cc7e76","g":4,"ref":"240472ed","x":"c416df16","y":"0c338a16"},{"pair":"dc869e","g":4,"ref":"0b78804e","x":"ef3c8587","y":"68aeef00"},{"pair":"7e5553","g":7,"ref":"70c040b5","x":"8bc8e1e6","y":"24311957"},{"pair":"c2358c","g":7,"ref":"cd883207","x":"792d1f7c","y":"70a5968e"},{"pair":"adc888","g":7,"ref":"7a61927f","x":"aaca2fb1","y":"af86ce48"},{"pair":"3c32b0","g":7,"ref":"d3bcfcfb","x":"ba2885d5","y":"fa6fdfda"},{"pair":"5be440","g":7,"ref":"2b33b37f","x":"fe3aa736","y":"16fa9383"},{"pair":"dea05d","g":7,"ref":"0e90448f","x":"efb8c495","y":"91ba9840"}];
 const PER_GROUP = 2;
@@ -214,11 +213,6 @@ function submit(rec){
     .catch(() => { $('saveNote').textContent = '暂时无法提交，已保存在本地，下一组会自动重试'; });
 }
 function persist(){ try{ localStorage.setItem('t2t_study_v4_' + uid, JSON.stringify(state)) }catch(e){} }
-function exportResults(){
-  const blob = new Blob([JSON.stringify({rater: uid, exported: new Date().toISOString(), ...state}, null, 1)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'video_study_' + uid + '.json';
-  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-}
 function save(){
   const it = items[cur], ans = {};
   QS.forEach(([k]) => ans[k] = document.querySelector(`input[name="${k}"]:checked`).value);
@@ -265,7 +259,6 @@ function init(){
     if(e.key === 'ArrowRight') step(1);
   });
   $('next').onclick = save;
-  $('export').onclick = exportResults; $('export2').onclick = exportResults;
   $('start').onclick = begin;
   $('nItems').textContent = 2 * PER_GROUP * new Set(PAIRS.map(p => p.g)).size + 2;
   $('meta').textContent = '离线版';
