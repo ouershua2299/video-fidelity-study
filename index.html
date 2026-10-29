@@ -1,0 +1,272 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>视频保真度评测</title>
+<style>
+/* Layout: one comparison at a time; shared transport bar drives all three clips; optional frame view below. */
+:root{
+  --bg:#f5f6f2; --panel:#ffffff; --ink:#1c1f1a; --muted:#5f6659; --line:#dfe3d8;
+  --accent:#5e9e00; --accent-ink:#ffffff; --accent-soft:#e7f2d6; --warn:#a3561f;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121411; --panel:#1b1e19; --ink:#e8ebe3; --muted:#9aa192; --line:#2e332a;
+  --accent:#7cc31a; --accent-ink:#0f1209; --accent-soft:#25331a; --warn:#e3a06a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121411; --panel:#1b1e19; --ink:#e8ebe3; --muted:#9aa192; --line:#2e332a;
+  --accent:#7cc31a; --accent-ink:#0f1209; --accent-soft:#25331a; --warn:#e3a06a; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-size:1.35rem;font-weight:700;margin:0}
+.meta{font:500 .8rem var(--mono);color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+.intro p,.intro ul{max-width:70ch;margin:.2em 0 .8em}.intro ul{padding-left:1.2em}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.ref{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ref video{width:min(520px,100%)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:700px){.pair{grid-template-columns:1fr}}
+figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+figcaption{font:700 .85rem var(--sans);color:var(--muted)}
+video{width:100%;aspect-ratio:16/9;background:#000;border-radius:6px;display:block;max-width:100%}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.transport{display:grid;grid-template-columns:auto auto auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+@media (max-width:700px){.transport{grid-template-columns:auto auto auto minmax(0,1fr)}.transport .t2{grid-column:1/-1}}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.time{font:500 .82rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+button{font:500 .92rem var(--sans);border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:.5em .95em;cursor:pointer}
+button:focus-visible,.opt input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.on{background:var(--accent-soft);border-color:var(--accent)}
+button[disabled]{opacity:.45;cursor:not-allowed}
+.frames{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:800px){.frames{grid-template-columns:1fr}}
+.frames canvas{width:100%;aspect-ratio:16/9;background:#000;border-radius:6px;cursor:crosshair;display:block}
+.q{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding-top:12px;border-top:1px solid var(--line)}
+@media (max-width:700px){.q{grid-template-columns:1fr}}
+.q b{font-weight:700}.q small{display:block;color:var(--muted)}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opt{position:relative}.opt input{position:absolute;opacity:0}
+.opt span{display:inline-block;padding:.45em 1.1em;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}
+.opt input:checked+span{background:var(--accent-soft);border-color:var(--accent);font-weight:700}
+.note{color:var(--muted);font-size:.88rem}.warn{color:var(--warn)}
+.done{text-align:center;padding:40px 20px}
+@media (prefers-reduced-motion:reduce){.progress>i{transition:none}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header><h1>视频保真度评测</h1><span class="meta" id="meta">加载中…</span></header>
+
+  <section class="panel intro" id="intro">
+    <p>每一页有一段<b>参考视频</b>和两段候选视频 <b>A</b>、<b>B</b>。三段视频来自同一个提示词和随机种子，A 和 B 是参考视频的两种加速版本。请回答两个问题，分不出来时选<b>差不多</b>。</p>
+    <ul>
+      <li><b>哪个更接近参考视频</b>：内容、布局、文字和细节保留得更好。</li>
+      <li><b>哪个整体观感更好</b>：画面更清晰，闪烁、变形和抖动更少。</li>
+    </ul>
+    <p class="note">三段视频共用一个进度条，可以拖动、暂停和逐帧前后移动。点“逐帧对比”可以把当前帧放大并排查看，点击任意画面可放大同一区域。</p>
+    <p class="note">共 <span id="nItems">26</span> 组，约 15 分钟。</p>
+    <p class="note">每组答案会自动提交；如果页面提示无法提交，答完后点“导出结果”，把文件发给发起人。中途关闭也没关系，用同一个浏览器重新打开本页面并输入同一个代号，会从断点继续。</p>
+    <div class="row"><label for="rater">你的代号（姓名或工号）</label><input id="rater" style="font:inherit;padding:.4em .6em;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)" placeholder="例如 zhangsan"><button class="primary" id="start" disabled>开始</button><span class="note warn" id="access"></span></div>
+  </section>
+
+  <section class="panel" id="trial" hidden>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="row" style="justify-content:space-between"><span class="meta" id="count"></span><span class="row"><span class="note" id="loadNote"></span><button id="export">导出结果</button></span></div>
+      <div class="progress"><i id="bar"></i></div>
+      <div class="ref"><figcaption>参考视频</figcaption><video id="vR" muted playsinline preload="auto"></video></div>
+      <div class="pair">
+        <figure><figcaption>A</figcaption><video id="vA" muted playsinline preload="auto"></video></figure>
+        <figure><figcaption>B</figcaption><video id="vB" muted playsinline preload="auto"></video></figure>
+      </div>
+      <div class="transport">
+        <button id="play" aria-label="播放或暂停">暂停</button>
+        <button id="back" aria-label="后退一帧">◀ 一帧</button>
+        <button id="fwd" aria-label="前进一帧">一帧 ▶</button>
+        <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="进度">
+        <span class="time" id="time">0.00 / 0.00 s</span>
+        <button id="frameBtn" class="t2">逐帧对比</button>
+      </div>
+      <div id="framePanel" hidden>
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <span class="note">当前帧放大对比。点击任意画面选择放大位置。</span>
+          <span class="row"><span class="note">放大</span><button data-z="1" class="zoom on">1×</button><button data-z="2" class="zoom">2×</button><button data-z="4" class="zoom">4×</button></span>
+        </div>
+        <div class="frames">
+          <figure><figcaption>参考视频</figcaption><canvas id="cR" width="896" height="504"></canvas></figure>
+          <figure><figcaption>A</figcaption><canvas id="cA" width="896" height="504"></canvas></figure>
+          <figure><figcaption>B</figcaption><canvas id="cB" width="896" height="504"></canvas></figure>
+        </div>
+      </div>
+      <div id="questions"></div>
+      <div class="row" style="justify-content:flex-end"><span class="note" id="saveNote"></span><button class="primary" id="next" disabled>提交并下一组</button></div>
+    </div>
+  </section>
+
+  <section class="panel done" id="done" hidden>
+    <h2 style="margin:0 0 .4em">感谢参与</h2>
+    <p class="note">答案已经提交。如需备份，可以点下面的按钮导出结果文件。</p>
+    <div class="row" style="justify-content:center"><button class="primary" id="export2">导出结果</button></div>
+  </section>
+</div>
+
+<script>
+// 收集地址：部署 Google Apps Script 后，把网页应用的 URL 填在这里；留空则只能导出结果文件。
+const ENDPOINT = '';
+const PAIRS = [{"pair":"a6a3a4","family":"T2V","ref":"52e6b438","x":"269e0d37","y":"f2a74de4"},{"pair":"0c5c7f","family":"T2V","ref":"52e6b438","x":"f2a74de4","y":"6513270e"},{"pair":"5d9dc9","family":"T2V","ref":"128b2f33","x":"d23f0824","y":"892f902b"},{"pair":"953198","family":"T2V","ref":"128b2f33","x":"1818e811","y":"d23f0824"},{"pair":"099950","family":"T2V","ref":"0ed90475","x":"e8e25d94","y":"81e74ef5"},{"pair":"1600a3","family":"T2V","ref":"0ed90475","x":"e8e25d94","y":"36f675cc"},{"pair":"1738f7","family":"T2V","ref":"6f03675a","x":"11e20b8f","y":"6b0d549b"},{"pair":"8d116e","family":"T2V","ref":"6f03675a","x":"6b0d549b","y":"3d9c1724"},{"pair":"1fb17c","family":"T2V","ref":"6cad4a26","x":"0f21ddb6","y":"d3ac94af"},{"pair":"f28c10","family":"T2V","ref":"6cad4a26","x":"0f21ddb6","y":"90c192cf"},{"pair":"f29d0d","family":"T2V","ref":"39263059","x":"a09f76b5","y":"a170b338"},{"pair":"0fd630","family":"T2V","ref":"39263059","x":"953f48f1","y":"a170b338"},{"pair":"f9ebda","family":"T2V","ref":"93bd04cf","x":"658cda14","y":"95e60af5"},{"pair":"3898d1","family":"T2V","ref":"93bd04cf","x":"95e60af5","y":"0cb1e29c"},{"pair":"4a23d5","family":"T2V","ref":"0becd7b0","x":"8e81973e","y":"dbc496cb"},{"pair":"6b4cb2","family":"T2V","ref":"0becd7b0","x":"2217bead","y":"8e81973e"},{"pair":"4ef8aa","family":"I2V","ref":"24ede6a4","x":"8a6a63ec","y":"1e27a1c0"},{"pair":"8f6d05","family":"I2V","ref":"24ede6a4","x":"8a6a63ec","y":"92276658"},{"pair":"94e3bf","family":"I2V","ref":"d0eda82f","x":"ae97ba94","y":"2e44158b"},{"pair":"923a73","family":"I2V","ref":"d0eda82f","x":"ae97ba94","y":"1a61dbe2"},{"pair":"8c38fb","family":"I2V","ref":"a38fd547","x":"5f557203","y":"301850c5"},{"pair":"b64ce4","family":"I2V","ref":"a38fd547","x":"18f135d2","y":"301850c5"},{"pair":"34b9b5","family":"I2V","ref":"1012f037","x":"907a70c3","y":"0f4205b4"},{"pair":"7f1505","family":"I2V","ref":"1012f037","x":"9e7769b1","y":"907a70c3"},{"pair":"506bf2","family":"I2V","ref":"ae2eb154","x":"6d76b07e","y":"881ed162"},{"pair":"7731af","family":"I2V","ref":"ae2eb154","x":"c6f87718","y":"881ed162"},{"pair":"4cbd87","family":"I2V","ref":"95e761d1","x":"7403e430","y":"ec66a787"},{"pair":"3f98e2","family":"I2V","ref":"95e761d1","x":"5c90a958","y":"ec66a787"},{"pair":"3e7d1b","family":"I2V","ref":"cb5c7427","x":"b2f14c94","y":"2e05319a"},{"pair":"14f473","family":"I2V","ref":"cb5c7427","x":"2e05319a","y":"c7a2ea20"},{"pair":"e00902","family":"I2V","ref":"930d6eaf","x":"4cdd2055","y":"86734721"},{"pair":"57ee05","family":"I2V","ref":"930d6eaf","x":"4cdd2055","y":"7ebff206"},{"pair":"faecbd","family":"T2V","ref":"babced20","x":"49b64a08","y":"72e6cc3a"},{"pair":"12bd4a","family":"T2V","ref":"babced20","x":"72e6cc3a","y":"9be4bcfc"},{"pair":"c1d3fc","family":"T2V","ref":"1e398f10","x":"6b0a18e8","y":"830e07bc"},{"pair":"5790f8","family":"T2V","ref":"1e398f10","x":"2a3af4d4","y":"830e07bc"},{"pair":"0a097c","family":"T2V","ref":"26e87555","x":"eeeacbe2","y":"7d2caf82"},{"pair":"f646e1","family":"T2V","ref":"26e87555","x":"eeeacbe2","y":"6bf46c69"},{"pair":"92b1d3","family":"T2V","ref":"ab1031d0","x":"13deef86","y":"c3baea9e"},{"pair":"ca0213","family":"T2V","ref":"ab1031d0","x":"13deef86","y":"8ede0d7a"},{"pair":"b1fee0","family":"T2V","ref":"e01f5057","x":"5051c1cc","y":"d17f9aca"},{"pair":"59a54a","family":"T2V","ref":"e01f5057","x":"57124242","y":"d17f9aca"},{"pair":"74c9df","family":"T2V","ref":"98289fcd","x":"9474031b","y":"7f26144b"},{"pair":"119a72","family":"T2V","ref":"98289fcd","x":"cc011cdd","y":"7f26144b"},{"pair":"795e82","family":"T2V","ref":"d70820fe","x":"17f5e837","y":"f1d69ed6"},{"pair":"b27159","family":"T2V","ref":"d70820fe","x":"451abd81","y":"17f5e837"},{"pair":"b394fb","family":"T2V","ref":"aa05e11a","x":"10a3d6b2","y":"0f88080b"},{"pair":"4f426d","family":"T2V","ref":"aa05e11a","x":"bb2d420f","y":"10a3d6b2"},{"pair":"d269a9","family":"I2V","ref":"a5aa3c81","x":"93f448b3","y":"fe3b890b"},{"pair":"721583","family":"I2V","ref":"a5aa3c81","x":"93f448b3","y":"ae658f33"},{"pair":"ab2cd3","family":"I2V","ref":"48db40af","x":"62c33a4f","y":"b774eb52"},{"pair":"58d556","family":"I2V","ref":"48db40af","x":"e3151288","y":"b774eb52"},{"pair":"2b0537","family":"I2V","ref":"05c6af07","x":"f0ce5835","y":"7631a992"},{"pair":"9c6539","family":"I2V","ref":"05c6af07","x":"5affb229","y":"f0ce5835"},{"pair":"c4aaea","family":"I2V","ref":"1df9fd78","x":"7e62aa0a","y":"0f17a300"},{"pair":"499523","family":"I2V","ref":"1df9fd78","x":"37dc76fb","y":"7e62aa0a"},{"pair":"641547","family":"I2V","ref":"211c70cf","x":"3f63af83","y":"bd0561e6"},{"pair":"eab477","family":"I2V","ref":"211c70cf","x":"bd0561e6","y":"65dc9f50"},{"pair":"72fdf2","family":"I2V","ref":"df1582b0","x":"7f1b103c","y":"14a0f9e7"},{"pair":"66d228","family":"I2V","ref":"df1582b0","x":"2a96fb1a","y":"7f1b103c"},{"pair":"d1bc52","family":"I2V","ref":"8ca81811","x":"e2257159","y":"4720771f"},{"pair":"6e36aa","family":"I2V","ref":"8ca81811","x":"230d977e","y":"4720771f"},{"pair":"6a50df","family":"I2V","ref":"dd2e1609","x":"8cdb305f","y":"47469a4d"},{"pair":"fc891b","family":"I2V","ref":"dd2e1609","x":"8cdb305f","y":"b4d66a3a"}];
+const N_REAL = 24;
+const QS = [['q_ref','哪个更接近参考视频？','内容、布局、文字和细节'],['q_all','哪个整体观感更好？','清晰度、闪烁、变形和抖动']];
+const OPTS = [['A','A 更好'],['=','差不多'],['B','B 更好']];
+const $ = id => document.getElementById(id);
+let uid=null, state=null, items=[], cur=0, t0=0;
+let playing=false, dragging=false, zoom=1, zc=[.5,.5], fps=24;
+const V = () => [$('vR'), $('vA'), $('vB')];
+
+function rng(seed){let s=0;for(const c of seed)s=(s*31+c.charCodeAt(0))>>>0;return()=>{s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5;s>>>=0;return s/4294967296}}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function buildItems(seed){
+  const r = rng(seed);
+  const pool = shuffle(PAIRS.slice(), r).slice(0, N_REAL).map(p => r() < .5 ? {id:p.pair, ref:p.ref, L:p.x, R:p.y} : {id:p.pair, ref:p.ref, L:p.y, R:p.x});
+  const chk = shuffle(PAIRS.slice(), r).slice(0, 2).map((p,i) => ({id:'check'+i, ref:p.ref, L:p.x, R:p.x, check:true}));
+  pool.splice(Math.floor(N_REAL/3), 0, chk[0]); pool.splice(Math.floor(2*N_REAL/3), 0, chk[1]);
+  return pool;
+}
+
+/* ---- synchronized playback: the reference clip is the clock, A and B follow it ---- */
+const dur = () => V().reduce((m,v) => Math.min(m, isFinite(v.duration) ? v.duration : Infinity), Infinity);
+function seekAll(t){ V().forEach(v => { try{ v.currentTime = t }catch(e){} }); }
+function setPlaying(p){
+  playing = p; $('play').textContent = p ? '暂停' : '播放';
+  if(p){ $('framePanel').hidden = true; $('frameBtn').classList.remove('on'); V().forEach(v => v.play().catch(()=>{})); }
+  else V().forEach(v => v.pause());
+}
+function tick(){
+  const [r,a,b] = V(), d = dur();
+  if(isFinite(d) && d > 0){
+    if(playing){
+      if(r.currentTime >= d - 0.05){ seekAll(0); }
+      [a,b].forEach(v => { if(Math.abs(v.currentTime - r.currentTime) > 0.04){ try{ v.currentTime = r.currentTime }catch(e){} } });
+    }
+    if(!dragging) $('seek').value = Math.round(1000 * r.currentTime / d);
+    $('time').textContent = r.currentTime.toFixed(2) + ' / ' + d.toFixed(2) + ' s';
+  }
+  requestAnimationFrame(tick);
+}
+function step(n){ setPlaying(false); const d = dur(); if(!isFinite(d)) return; seekAll(Math.min(d - 1/fps, Math.max(0, $('vR').currentTime + n/fps))); }
+
+/* ---- frame view: draws the current frame of all three clips with a shared zoom window ---- */
+function drawFrames(){
+  if($('framePanel').hidden) return;
+  [['cR','vR'],['cA','vA'],['cB','vB']].forEach(([c,v]) => {
+    const cv = $(c), ctx = cv.getContext('2d'), vid = $(v);
+    if(!vid.videoWidth) return;
+    const w = vid.videoWidth / zoom, h = vid.videoHeight / zoom;
+    const x = Math.min(vid.videoWidth - w, Math.max(0, zc[0]*vid.videoWidth - w/2));
+    const y = Math.min(vid.videoHeight - h, Math.max(0, zc[1]*vid.videoHeight - h/2));
+    cv.width = vid.videoWidth; cv.height = vid.videoHeight;
+    ctx.imageSmoothingEnabled = zoom === 1;
+    ctx.drawImage(vid, x, y, w, h, 0, 0, cv.width, cv.height);
+  });
+}
+function toggleFrames(){
+  const show = $('framePanel').hidden;
+  if(show) setPlaying(false);
+  $('framePanel').hidden = !show; $('frameBtn').classList.toggle('on', show);
+  drawFrames();
+}
+
+function renderQuestions(){
+  $('questions').innerHTML = QS.map(([k,t,s]) => `
+    <div class="q"><div><b>${t}</b><small>${s}</small></div>
+    <div class="opts" role="radiogroup" aria-label="${t}">${OPTS.map(([v,l]) =>
+      `<label class="opt"><input type="radio" name="${k}" id="${k}_${v==='='?'S':v}" value="${v}"><span>${l}</span></label>`).join('')}</div></div>`).join('');
+  $('questions').querySelectorAll('input').forEach(i => i.addEventListener('change', () => {
+    $('next').disabled = !QS.every(([k]) => document.querySelector(`input[name="${k}"]:checked`));
+  }));
+}
+function showItem(){
+  if(cur >= items.length){ setPlaying(false); $('trial').hidden = true; $('done').hidden = false; $('meta').textContent = '已完成'; return; }
+  const it = items[cur];
+  setPlaying(false); $('framePanel').hidden = true; $('frameBtn').classList.remove('on');
+  $('vR').src = 'videos/' + it.ref + '.mp4'; $('vA').src = 'videos/' + it.L + '.mp4'; $('vB').src = 'videos/' + it.R + '.mp4';
+  renderQuestions(); $('next').disabled = true; $('saveNote').textContent = '';
+  $('count').textContent = `第 ${cur+1} / ${items.length} 组`;
+  $('bar').style.width = (100*cur/items.length) + '%';
+  $('loadNote').textContent = '视频加载中…';
+  let ready = 0;
+  V().forEach(v => v.addEventListener('canplay', () => {
+    if(++ready === 3){ $('loadNote').textContent = ''; const d = dur(); fps = d > 7 ? 24 : 16; seekAll(0); setPlaying(true); }
+  }, {once:true}));
+  t0 = Date.now();
+}
+function submit(rec){
+  if(!ENDPOINT) return;
+  let queue = []; try{ queue = JSON.parse(localStorage.getItem('t2t_queue') || '[]') }catch(e){}
+  queue.push({rater: uid, ...rec});
+  const send = queue.slice();
+  try{ localStorage.setItem('t2t_queue', JSON.stringify(queue)) }catch(e){}
+  fetch(ENDPOINT, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(send)})
+    .then(() => { try{ localStorage.setItem('t2t_queue', '[]') }catch(e){} $('saveNote').textContent = '已提交'; })
+    .catch(() => { $('saveNote').textContent = '暂时无法提交，已保存在本地，下一组会自动重试'; });
+}
+function persist(){ try{ localStorage.setItem('t2t_study_' + uid, JSON.stringify(state)) }catch(e){} }
+function exportResults(){
+  const blob = new Blob([JSON.stringify({rater: uid, exported: new Date().toISOString(), ...state}, null, 1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'video_study_' + uid + '.json';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function save(){
+  const it = items[cur], ans = {};
+  QS.forEach(([k]) => ans[k] = document.querySelector(`input[name="${k}"]:checked`).value);
+  state.answers[it.id] = {pair: it.id, left: it.L, right: it.R, ref: it.ref, check: !!it.check, v: 2, ...ans, ms: Date.now() - t0, at: Date.now()};
+  state.next = cur + 1; state.updated = Date.now(); persist(); submit(state.answers[it.id]);
+  cur++; showItem();
+}
+function begin(){
+  uid = $('rater').value.trim().replace(/[^\w一-龥.-]/g, '_');
+  if(!uid) return;
+  let saved = null; try{ saved = JSON.parse(localStorage.getItem('t2t_study_' + uid) || 'null') }catch(e){}
+  if(saved && saved.items){ state = saved; items = state.items.map(([id,L,R,ref,c]) => ({id, L, R, ref, check: !!c})); }
+  else{ items = buildItems(uid); state = {items: items.map(i => [i.id, i.L, i.R, i.ref, i.check ? 1 : 0]), answers: {}, next: 0, started: Date.now()}; persist(); }
+  cur = state.next || 0;
+  $('meta').textContent = uid;
+  $('intro').hidden = true;
+  if(cur >= items.length){ $('done').hidden = false; return; }
+  $('trial').hidden = false; showItem();
+}
+function init(){
+  $('play').onclick = () => setPlaying(!playing);
+  $('back').onclick = () => step(-1);
+  $('fwd').onclick = () => step(1);
+  $('frameBtn').onclick = toggleFrames;
+  $('seek').addEventListener('input', () => { dragging = true; setPlaying(false); const d = dur(); if(isFinite(d)) seekAll($('seek').value / 1000 * d); });
+  $('seek').addEventListener('change', () => { dragging = false; });
+  V().forEach(v => v.addEventListener('seeked', drawFrames));
+  document.querySelectorAll('.zoom').forEach(b => b.onclick = () => { zoom = +b.dataset.z; document.querySelectorAll('.zoom').forEach(x => x.classList.toggle('on', x === b)); drawFrames(); });
+  ['cR','cA','cB'].forEach(id => $(id).addEventListener('click', e => {
+    const r = e.target.getBoundingClientRect(), cx = (e.clientX - r.left)/r.width, cy = (e.clientY - r.top)/r.height;
+    const half = .5/zoom, x0 = Math.min(1 - 2*half, Math.max(0, zc[0] - half)), y0 = Math.min(1 - 2*half, Math.max(0, zc[1] - half));
+    zc = [x0 + cx/zoom, y0 + cy/zoom];
+    if(zoom === 1){ zoom = 2; document.querySelectorAll('.zoom').forEach(x => x.classList.toggle('on', x.dataset.z === '2')); }
+    drawFrames();
+  }));
+  document.addEventListener('keydown', e => {
+    if($('trial').hidden || e.target.tagName === 'INPUT') return;
+    if(e.key === ' '){ e.preventDefault(); setPlaying(!playing); }
+    if(e.key === 'ArrowLeft') step(-1);
+    if(e.key === 'ArrowRight') step(1);
+  });
+  $('next').onclick = save;
+  $('export').onclick = exportResults; $('export2').onclick = exportResults;
+  $('rater').addEventListener('input', () => { $('start').disabled = !$('rater').value.trim(); });
+  $('rater').addEventListener('keydown', e => { if(e.key === 'Enter' && $('rater').value.trim()) begin(); });
+  $('start').onclick = begin;
+  $('nItems').textContent = N_REAL + 2;
+  $('meta').textContent = '离线版';
+  requestAnimationFrame(tick);
+}
+init();
+</script>
+</body></html>
