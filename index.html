@@ -68,8 +68,8 @@ button[disabled]{opacity:.45;cursor:not-allowed}
     </ul>
     <p class="note">三段视频共用一个进度条，可以拖动、暂停和逐帧前后移动。点“逐帧对比”可以把当前帧放大并排查看，点击任意画面可放大同一区域。</p>
     <p class="note">共 <span id="nItems">26</span> 组，约 15 分钟。</p>
-    <p class="note">每组答案会自动提交；如果页面提示无法提交，答完后点“导出结果”，把文件发给发起人。中途关闭也没关系，用同一个浏览器重新打开本页面并输入同一个代号，会从断点继续。</p>
-    <div class="row"><label for="rater">你的代号（姓名或工号）</label><input id="rater" style="font:inherit;padding:.4em .6em;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink)" placeholder="例如 zhangsan"><button class="primary" id="start" disabled>开始</button><span class="note warn" id="access"></span></div>
+    <p class="note">每组答案会自动提交；如果页面提示无法提交，答完后点“导出结果”，把文件发给发起人。中途关闭也没关系，用同一个浏览器重新打开本页面，会从断点继续。</p>
+    <div class="row"><button class="primary" id="start">开始</button></div>
   </section>
 
   <section class="panel" id="trial" hidden>
@@ -225,13 +225,13 @@ function save(){
   cur++; showItem();
 }
 function begin(){
-  uid = $('rater').value.trim().replace(/[^\w一-龥.-]/g, '_');
-  if(!uid) return;
+  try{ uid = localStorage.getItem('t2t_rater') }catch(e){}
+  if(!uid){ uid = 'r' + Math.random().toString(36).slice(2, 10); try{ localStorage.setItem('t2t_rater', uid) }catch(e){} }
   let saved = null; try{ saved = JSON.parse(localStorage.getItem('t2t_study_' + uid) || 'null') }catch(e){}
   if(saved && saved.items){ state = saved; items = state.items.map(([id,L,R,ref,c]) => ({id, L, R, ref, check: !!c})); }
   else{ items = buildItems(uid); state = {items: items.map(i => [i.id, i.L, i.R, i.ref, i.check ? 1 : 0]), answers: {}, next: 0, started: Date.now()}; persist(); }
   cur = state.next || 0;
-  $('meta').textContent = uid;
+  $('meta').textContent = '';
   $('intro').hidden = true;
   if(cur >= items.length){ $('done').hidden = false; return; }
   $('trial').hidden = false; showItem();
@@ -260,8 +260,6 @@ function init(){
   });
   $('next').onclick = save;
   $('export').onclick = exportResults; $('export2').onclick = exportResults;
-  $('rater').addEventListener('input', () => { $('start').disabled = !$('rater').value.trim(); });
-  $('rater').addEventListener('keydown', e => { if(e.key === 'Enter' && $('rater').value.trim()) begin(); });
   $('start').onclick = begin;
   $('nItems').textContent = N_REAL + 2;
   $('meta').textContent = '离线版';
